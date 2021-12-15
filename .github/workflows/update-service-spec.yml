@@ -1,4 +1,4 @@
-name: Update app spec
+name: Update service spec
 
 on:
   workflow_call:
@@ -12,14 +12,14 @@ on:
     secrets:
       do_token:
         required: true
-      variables:
-        required: false
+      service_spec:
+        required: true
 
 jobs:
   sync-spec:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout administration
         uses: actions/checkout@v2
         with:
           repository: Animately/administration
@@ -33,18 +33,19 @@ jobs:
       - name: Login to registry
         run: doctl registry login
 
-      - name: Get app spec
+      - name: Generate app-spec.json from doctl
         run: |
           doctl apps spec get ${{ inputs.deploy_app_id}} --format json > "$GITHUB_WORKSPACE/app-spec.json"
 
-      - name: Create variables
-        run: echo '${{ secrets.variables }}' >> "$GITHUB_WORKSPACE/variables.json"
+      - name: Generate service-spec.json from secrets
+        run: echo '${{ secrets.service_spec }}' >> "$GITHUB_WORKSPACE/service-spec.json"
 
-      - name: Update app spec on DO
+      - name: Apply new spec to digitalocean and redeploy
         run: |
-          node replace-spec.js ${{ inputs.service }} | doctl apps update ${{ inputs.deploy_app_id }} --wait --spec -
+          node scripts/spec-service.js ${{ inputs.service }} app-spec.json service-spec.json \
+          | doctl apps update ${{ inputs.deploy_app_id }} --wait --spec -
 
       - name: Clean up
         run: |
           rm "$GITHUB_WORKSPACE/app-spec.json"
-          rm "$GITHUB_WORKSPACE/variables.json"
+          rm "$GITHUB_WORKSPACE/service-spec.json"

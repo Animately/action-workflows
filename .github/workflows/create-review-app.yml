@@ -1,0 +1,84 @@
+name: Create review app
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        required: true
+        type: string
+      service:
+        required: true
+        type: string
+      base_deploy_id:
+        required: true
+        type: string
+    secrets:
+      do_token:
+        required: true
+      service_spec:
+        required: false
+
+jobs:
+  create-review-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout administration
+        uses: actions/checkout@v2
+        with:
+          repository: Animately/administration
+          token: ${{ github.token }}
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.do_token }}
+
+      - name: Login to registry
+        run: doctl registry login
+
+      - name: Generate app-spec.json from doctl
+        run: |
+          doctl apps spec get ${{ inputs.base_deploy_id }} --format json > app-spec.json
+
+      - name: Generate app-replace.json from inputs
+        env:
+          REVIEW_NAME: ${{ inputs.name }}
+          SERVICE_NAME: ${{ inputs.service }}
+        run: |
+          cat <<EOT>> app-replace.json
+          {
+            "name": "$SERVICE_NAME-$REVIEW_NAME"
+          }
+          EOT
+
+      - name: Write new app specification
+        run: |
+          node scripts/spec.js app-spec.json app-replace.json > new-app-spec.json
+
+      - name: Determine presence of service_spec
+        id: service_spec_check
+        if: ${{ env.SERVICE_SPEC != '' }}
+        env:
+          SERVICE_SPEC: ${{ secrets.service_spec }}
+        run: echo "::set-output name=defined::true"
+
+      - name: Generate service spec
+        if: ${{ steps.service_spec_check.outputs.defined == 'true' }}
+        shell: bash
+        run: echo -e '${{ secrets.service_spec }}' > service-spec.json
+
+      - name: Write final specification
+        if: ${{ steps.service_spec_check.outputs.defined == 'true' }}
+        run: |
+          node scripts/spec-service.js ${{ inputs.service }} new-app-spec.json service-spec.json > final-app-spec.json
+
+      - name: Deploy new review app to digitalocean
+        run: doctl apps create --wait --spec final-app-spec.json
+
+      - name: Clean up
+        run: |
+          rm app-spec.json 
+          rm app-replace.json 
+          rm new-app-spec.json 
+          rm service-spec.json 
+          rm final-app-spec.json
