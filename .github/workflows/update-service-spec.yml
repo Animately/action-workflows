@@ -25,6 +25,9 @@ jobs:
           repository: Animately/administration
           token: ${{ github.token }}
 
+      - name: Install do-spec
+        run: cd do-spec; npm install && npm install -g .
+
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
@@ -35,17 +38,21 @@ jobs:
 
       - name: Generate app-spec.json from doctl
         run: |
-          doctl apps spec get ${{ inputs.deploy_app_id}} --format json > "$GITHUB_WORKSPACE/app-spec.json"
+          doctl apps spec get ${{ inputs.deploy_app_id }} --format json > app-spec.json
 
       - name: Generate service-spec.json from secrets
-        run: echo '${{ secrets.service_spec }}' >> "$GITHUB_WORKSPACE/service-spec.json"
+        run: echo '${{ secrets.service_spec }}' >> service-spec.json
+
+      - name: Generate new spec-file
+        run: |
+          do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json > generated-spec.json
 
       - name: Apply new spec to digitalocean and redeploy
         run: |
-          node scripts/spec-service.js ${{ inputs.service }} app-spec.json service-spec.json \
-          | doctl apps update ${{ inputs.deploy_app_id }} --wait --spec -
+          doctl apps update ${{ inputs.deploy_app_id }} --wait --spec generated-spec.json
 
       - name: Clean up
         run: |
-          rm "$GITHUB_WORKSPACE/app-spec.json"
-          rm "$GITHUB_WORKSPACE/service-spec.json"
+          rm app-spec.json
+          rm service-spec.json
+          rm generated-spec.json
