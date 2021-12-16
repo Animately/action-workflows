@@ -1,0 +1,13 @@
+{
+  "name": "do-spec",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Spec manager",
+  "type": "module",
+  "exports": "./index.js",
+  "bin": "./index.js",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "8.3.0"
+  }
+}
