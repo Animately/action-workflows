@@ -54,11 +54,11 @@ jobs:
 
       - name: Remove domain settings (use DO domain)
         run: |
-          do-spec delete-top-level-props app-spec.json domains > app-spec.json 
+          echo "$(do-spec delete-top-level-props app-spec.json domains)" > app-spec.json 
 
       - name: Merge app-replace.json into app-spec.json
         run: |
-          do-spec merge-top-level app-spec.json app-replace.json > app-spec.json
+          echo "$(do-spec merge-top-level app-spec.json app-replace.json)" > app-spec.json
 
       - name: Determine presence of service_spec
         id: service_spec_check
@@ -74,7 +74,7 @@ jobs:
 
       - name: Remove other services from spec
         run: |
-          do-spec delete-services app-spec.json ${{ steps.extract_services.outputs.services }} > app-spec.json
+          echo "$(do-spec delete-services app-spec.json ${{ steps.extract_services.outputs.services }})" > app-spec.json
 
       - name: Generate service spec
         if: ${{ steps.service_spec_check.outputs.defined == 'true' }}
@@ -84,7 +84,7 @@ jobs:
       - name: Merge service spec into app-spec.json
         if: ${{ steps.service_spec_check.outputs.defined == 'true' }}
         run: |
-          do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json > app-spec.json
+          echo "$(do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json)" > app-spec.json
 
       - name: Deploy new review app to digitalocean
         run: doctl apps create --wait --spec app-spec.json
