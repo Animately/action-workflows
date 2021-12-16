@@ -28,6 +28,9 @@ jobs:
           repository: Animately/administration
           token: ${{ github.token }}
 
+      - name: Install do-spec
+        run: cd do-spec; npm install && npm install -g .
+
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
@@ -46,14 +49,16 @@ jobs:
           SERVICE_NAME: ${{ inputs.service }}
         run: |
           cat <<EOT>> app-replace.json
-          {
-            "name": "$SERVICE_NAME-$REVIEW_NAME"
-          }
+          { "name": "$SERVICE_NAME-$REVIEW_NAME" }
           EOT
 
-      - name: Write new app specification
+      - name: Remove domain settings (use DO domain)
         run: |
-          node scripts/spec.js app-spec.json app-replace.json > new-app-spec.json
+          do-spec delete-top-level-props app-spec.json domains > app-spec.json 
+
+      - name: Merge app-replace.json into app-spec.json
+        run: |
+          do-spec merge-top-level app-spec.json app-replace.json > app-spec.json
 
       - name: Determine presence of service_spec
         id: service_spec_check
@@ -62,23 +67,30 @@ jobs:
           SERVICE_SPEC: ${{ secrets.service_spec }}
         run: echo "::set-output name=defined::true"
 
+      - name: Get other services
+        id: extract_services
+        run: |
+          echo "::set-output name=services::$(echo \"console.log(require('./app-spec.json').services.filter(s => s.name !== '${{ inputs.service }}').map(s => s.name).join(','))\" | node -)"
+
+      - name: Remove other services from spec
+        run: |
+          do-spec delete-services app-spec.json ${{ steps.extract_services.outputs.services }} > app-spec.json
+
       - name: Generate service spec
         if: ${{ steps.service_spec_check.outputs.defined == 'true' }}
         shell: bash
         run: echo -e '${{ secrets.service_spec }}' > service-spec.json
 
-      - name: Write final specification
+      - name: Merge service spec into app-spec.json
         if: ${{ steps.service_spec_check.outputs.defined == 'true' }}
         run: |
-          node scripts/spec-service.js ${{ inputs.service }} new-app-spec.json service-spec.json > final-app-spec.json
+          do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json > app-spec.json
 
       - name: Deploy new review app to digitalocean
-        run: doctl apps create --wait --spec final-app-spec.json
+        run: doctl apps create --wait --spec app-spec.json
 
       - name: Clean up
         run: |
           rm app-spec.json 
           rm app-replace.json 
-          rm new-app-spec.json 
           rm service-spec.json 
-          rm final-app-spec.json
