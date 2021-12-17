@@ -20,13 +20,13 @@ on:
     outputs:
       review_app_id:
         description: The digitalocean app id of the created review app
-        value: ${{ jobs.create-review-app.outputs.review_app_id }}
+        value: ${{ jobs.review.outputs.review_app_id }}
       review_url:
         description: The created review url
-        value: ${{ jobs.create-review-app.outputs.review_url }}
+        value: ${{ jobs.review.outputs.review_url }}
 
 jobs:
-  create-review-app:
+  review:
     runs-on: ubuntu-latest
     outputs:
       review_app_id: ${{ steps.deploy.outputs.review_app_id }}
@@ -58,8 +58,10 @@ jobs:
           REVIEW_NAME: ${{ inputs.name }}
           SERVICE_NAME: ${{ inputs.service }}
         run: |
+          appname=$(echo "$SERVICE_NAME-$REVIEW_NAME" | cut -c -28)
+          
           cat <<EOT>> app-replace.json
-          { "name": "$SERVICE_NAME-$REVIEW_NAME" }
+          { "name": "${appname}-rev" }
           EOT
 
       - name: Remove domain settings (use DO domain)
@@ -82,6 +84,7 @@ jobs:
         run: |
           service_list=$(echo "console.log(require('./app-spec.json').services.filter(s => s.name !== '${{ inputs.service }}').map(s => s.name).join(', '))" | node -)
           echo "::set-output name=services::$service_list"
+          echo "Services to delete: $service_list"
 
       - name: Remove other services from spec
         run: |
@@ -92,7 +95,7 @@ jobs:
         shell: bash
         run: echo -e '${{ secrets.service_spec }}' > service-spec.json
 
-      - name: Merge service spec into app-spec.json
+      - name: Merge service spec back into app-spec.json
         if: ${{ steps.service_spec_check.outputs.defined == 'true' }}
         run: |
           echo "$(do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json)" > app-spec.json
@@ -100,15 +103,21 @@ jobs:
       - name: Deploy new review app to digitalocean
         id: deploy
         run: |
-          app_id=$(doctl apps create --wait --spec app-spec.json --no-header --format ID)
+          app_id=$(doctl apps create --spec app-spec.json --format ID --no-header --wait)
           echo "::set-output name=review_app_id::$app_id"
+
+      - name: Get service route
+        uses: sergeysova/jq-action@v2
+        id: service_route
+        continue-on-error: true
+        with:
+          cmd: cat app-spec.json | jq -r ".services[] | select(.name | contains(\"${{ inputs.service }}\")) | .routes[0].path" 2>/dev/null
 
       - name: Get review url
         id: review
         run: |
-          ingress=$(doctl apps get ${{ steps.deploy.outputs.review_app_id }} --no-header --format DefaultIngress)
-          postfix=${{ inputs.service }}
-          echo "::set-output name=review_url::$ingress/$postfix"
+          ingress=$(doctl apps get ${{ steps.deploy.outputs.review_app_id }} --format DefaultIngress --no-header)
+          echo "::set-output name=review_url::$ingress${{ steps.service_route.outputs.value }}"
 
       - name: Clean up
         run: |
