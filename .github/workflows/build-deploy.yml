@@ -17,10 +17,16 @@ on:
         required: true
       envs:
         required: false
+    outputs:
+      deploy_id:
+        description: The digitalocean deploy id
+        value: ${{ jobs.build-deploy.outputs.deploy_id }}
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    outputs:
+      deploy_id: ${{ steps.deployment.outputs.deploy_id }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -77,6 +83,7 @@ jobs:
 
       - name: Deploy DO apps
         if: contains(steps.determine-deployment.outputs.deploy, '1')
+        id: deployment
         timeout-minutes: 30
         run: |
           deploy_id=$(doctl apps create-deployment ${{ inputs.deploy_app_id }} --format ID --no-header --wait)
