@@ -17,10 +17,20 @@ on:
         required: true
       service_spec:
         required: false
+    outputs:
+      review_app_id:
+        description: The digitalocean app id of the created review app
+        value: ${{ jobs.create-review-app.outputs.review_app_id }}
+      review_url:
+        description: The created review url
+        value: ${{ jobs.create-review-app.outputs.review_url }}
 
 jobs:
   create-review-app:
     runs-on: ubuntu-latest
+    outputs:
+      review_app_id: ${{ steps.deploy.outputs.review_app_id }}
+      review_url: ${{ steps.review.outputs.review_url }}
     steps:
       - name: Checkout administration
         uses: actions/checkout@v2
@@ -88,7 +98,17 @@ jobs:
           echo "$(do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json)" > app-spec.json
 
       - name: Deploy new review app to digitalocean
-        run: doctl apps create --wait --spec app-spec.json
+        id: deploy
+        run: |
+          app_id=$(doctl apps create --wait --spec app-spec.json --no-header --format ID)
+          echo "::set-output name=review_app_id::$app_id"
+
+      - name: Get review url
+        id: review
+        run: |
+          ingress=$(doctl apps get ${{ steps.deploy.outputs.review_app_id }} --no-header --format DefaultIngress)
+          postfix=${{ inputs.service }}
+          echo "::set-output name=review_url::$ingress/$postfix"
 
       - name: Clean up
         run: |
