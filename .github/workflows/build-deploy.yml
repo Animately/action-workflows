@@ -78,7 +78,9 @@ jobs:
       - name: Deploy DO apps
         if: contains(steps.determine-deployment.outputs.deploy, '1')
         timeout-minutes: 30
-        run: doctl apps create-deployment ${{ inputs.deploy_app_id }} --wait
+        run: |
+          deploy_id=$(doctl apps create-deployment ${{ inputs.deploy_app_id }} --format ID --no-header --wait)
+          echo "::set-output name=deploy_id::$deploy_id"
 
       - name: Move cache
         run: |
