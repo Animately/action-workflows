@@ -29,13 +29,17 @@ jobs:
         run: doctl registry login
 
       - name: Delete app on digitalocean
+        continue-on-error: true
         run: doctl apps delete ${{ inputs.deploy_app_id }} -f
 
       - name: Delete image on Container Registry
+        continue-on-error: true
         env:
           SERVICE: ${{ inputs.service }}
           TAG: ${{ inputs.container_tag }}
         run: |
-          digest=$(doctl registry repository lt $SERVICE --format Tag,ManifestDigest | grep staging | grep -oEi 'sha256:.*')
+          digest=$(doctl registry repository lt $SERVICE --format Tag,ManifestDigest | grep $TAG | grep -oEi 'sha256:.*')
+          echo "Delete container with manifest: $digest"
+          
           doctl registry repository dm $SERVICE $digest -f
         

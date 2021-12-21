@@ -86,6 +86,7 @@ jobs:
         id: deployment
         timeout-minutes: 30
         run: |
+          echo "Create deployment for app: ${{ inputs.deploy_app_id }}"
           deploy_id=$(doctl apps create-deployment ${{ inputs.deploy_app_id }} --format ID --no-header --wait)
           echo "::set-output name=deploy_id::$deploy_id"
 
