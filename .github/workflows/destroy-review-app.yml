@@ -9,6 +9,9 @@ on:
       container_tag:
         required: true
         type: string
+      service:
+        required: true
+        type: string
     secrets:
       do_token:
         required: true
@@ -29,6 +32,10 @@ jobs:
         run: doctl apps delete ${{ inputs.deploy_app_id }} -f
 
       - name: Delete image on Container Registry
+        env:
+          SERVICE: ${{ inputs.service }}
+          TAG: ${{ inputs.container_tag }}
         run: |
-          doctl registry repository delete-tag animately ${{ inputs.container_tag }} -f
-          
+          digest=$(doctl registry repository lt $SERVICE --format Tag,ManifestDigest | grep staging | grep -oEi 'sha256:.*')
+          doctl registry repository dm $SERVICE $digest -f
+        
