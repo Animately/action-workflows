@@ -9,7 +9,7 @@ on:
       service:
         required: true
         type: string
-      base_deploy_id:
+      base_app_id:
         required: true
         type: string
     secrets:
@@ -51,7 +51,7 @@ jobs:
 
       - name: Generate app-spec.json from doctl
         run: |
-          doctl apps spec get ${{ inputs.base_deploy_id }} --format json > app-spec.json
+          doctl apps spec get ${{ inputs.base_app_id }} --format json > app-spec.json
 
       - name: Generate app-replace.json from inputs
         env:

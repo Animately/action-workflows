@@ -1,26 +1,18 @@
-# Animately Administration
+# Animately Workflows
 
-This repository contains administrative tools like workflows & actions that can be reused in other repositories.
+Reusable workflows for Animately repositories.
 
-## Workflows
+### Build, push & deploy to DigitalOcean apps
 
-### Build, push & deploy to DO apps
-
-`.github/workflows/build-deploy.yml`:
+`.github/workflows/build-deploy.yml`
 
 This workflow builds the docker image (including buildkit secrets if needed) and pushes the image to the [DO Container Registry](https://registry.digitalocean.com/animately).
 If `deploy_app_id` is provided, this app also gets redeployed.
 
-Example usage:
-
 ```yml
-name: Deploy to staging
-
-on: [workflow_dispatch]
-
 jobs:
   build-and-deploy:
-    uses: Animately/administration/.github/workflows/build-deploy.yml@main
+    uses: animately/action-workflows/.github/workflows/build-deploy.yml@main
     with:
       # name of the service to build and deploy
       name: blog
@@ -43,20 +35,23 @@ jobs:
         SUPER_SECRET=${{ secrets.SUPER_SECRET }}
 ```
 
-### Update app spec
+Outputs:
 
-Each app in DO Apps has a spec file that contains the app's configuration. This workflow updates the spec file with the provided environment variables.
+```
+deploy_id
+```
 
-Example usage:
+### Update app spec on DigitalOcean
+
+`.github/workflows/update-service-spec.yml`
+
+Each app in DO Apps has a spec file that contains the app's configuration. 
+This workflow updates the spec file with the provided environment variables.
 
 ```yml
-name: Update production spec
-
-on: [workflow_dispatch]
-
 jobs:
   sync-spec:
-    uses: Animately/administration/.github/workflows/update-app-spec.yml@main
+    uses: animately/action-workflows/.github/workflows/update-app-spec.yml@main
     with:
       # the app id to update 
       deploy_app_id: 9fcae70d0f83224280d06c0a3266065eb55cf1c
@@ -67,27 +62,95 @@ jobs:
       # the digitalocean personal access token
       do_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       
-      # set the environment variables
-      variables: >
+      # set the service spec to update
+      service_spec: |
         {
-          "server__host": {
-            "value": "0.0.0.0",
-            "type": "GENERAL"
-          },
-          "server__port": {
-            "value": "5000",
-            "type": "GENERAL"
-          },
-          "url": {
-            "value": "https://animately.co/blog",
-            "type": "GENERAL"
-          },
-          "super_secret": {
-            "value": "${{ secrets.SUPER_SECRET }}",
-            "type": "SECRET"
-          }
+          "envs": [
+            {
+              "key": "FIREBASE_AUTH_TOKEN",
+              "value": "${{ secrets.FIREBASE_AUTH_TOKEN }}",
+              "type": "SECRET",
+              "scope": "RUN_TIME"
+            },
+            {
+              "key": "BASE_PATH",
+              "value": "/blog",
+              "type": "GENERAL",
+              "scope": "RUN_TIME"
+            }
+          ]
         }
 
 ```
 
 > See [DO Apps spec reference](https://docs.digitalocean.com/products/app-platform/references/app-specification-reference/) for more information.
+
+### Create review app on DigitalOcean
+
+`.github/workflows/create-review-app.yml`
+
+This will create a new app on DO Apps and will deploy the specified component (service).
+
+```yml
+jobs:
+  create-review:
+    uses: animately/action-workflows/.github/workflows/create-review-app.yml@main
+    with:
+      # name of the app to create
+      name: review-test-app
+      
+      # the service to deploy
+      service: optimizer
+      
+      # extends to spec from this app
+      base_app_id: 9fcae70d0f83224280d06c0a3266065eb55cf1c
+    secrets:
+      # the digitalocean personal access token
+      do_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      
+      # the service spec to use
+      service_spec: >
+        {
+          "envs": [
+            {
+              "key": "OPTIMIZER_BASE",
+              "value": "/optimize/",
+              "type": "GENERAL",
+              "scope": "RUN_TIME"
+            }
+          ],
+          "image": {
+            "registry_type": "DOCR",
+            "repository": "optimizer",
+            "tag": "review-test-app-v1"
+          }
+        }
+```
+
+Outputs:
+
+```
+review_app_id
+review_url
+```
+
+### Destroy review app on DigitalOcean
+
+`.github/workflows/destroy-review-app.yml`
+
+This will delete the app from apps and remove the image from Container Registry. 
+
+```yml
+jobs:
+  teardown:
+    uses: animately/action-workflows/.github/workflows/destroy-review-app.yml@main
+    with:
+      # the app to destroy in DO apps
+      deploy_app_id: review-test-app
+      
+      # the tag to delete from the Container Registry
+      container_tag: review-test-app-v1
+    secrets:
+      # the digitalocean personal access token
+      do_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+```
