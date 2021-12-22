@@ -1,0 +1,42 @@
+name: Get PR artifact
+
+on:
+  workflow_call:
+    inputs:
+      workflow_file_name:
+        default: review-create.yml
+        required: false
+        type: string
+      artifact_name:
+        default: review-artifact
+        required: false
+        type: string
+
+    outputs:
+      app_id:
+        description: The app id
+        value: ${{ jobs.artifact.outputs.app_id }}
+      app_url:
+        description: The app url
+        value: ${{ jobs.artifact.outputs.app_url }}
+
+jobs:
+  artifact:
+    runs-on: ubuntu-latest
+    outputs:
+      app_id: ${{ steps.artifacts.outputs.review_app_id }}
+      app_url: ${{ steps.artifacts.outputs.review_url }}
+    steps:
+      - uses: animately/action-download-pr-artifact@main
+        with:
+          worfklow_file_name: ${{ inputs.workflow_file_name }}
+          artifact_name: ${{ inputs.artifact_name }}
+          path: /tmp/review-artifact
+      - name: Output artifacts
+        id: artifacts
+        run: |
+          echo "==> AppID:  $(cat /tmp/review-artifact/app_id.txt)"
+          echo "==> AppURL: $(cat /tmp/review-artifact/app_url.txt)"
+          
+          echo "::set-output name=review_app_id::$(cat /tmp/review-artifact/app_id.txt)"
+          echo "::set-output name=review_url::$(cat /tmp/review-artifact/app_url.txt)"
