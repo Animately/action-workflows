@@ -1,0 +1,22 @@
+name: Generate review slug
+
+on:
+  workflow_call:
+    outputs:
+      slug:
+        description: Get the review slug based on head ref
+        value: ${{ jobs.generate-slug.outputs.slug }}
+
+jobs:
+  generate-slug:
+    runs-on: ubuntu-latest
+    outputs:
+      slug: ${{ steps.slug.outputs.slug }}
+    steps:
+      - name: Generate slug
+        uses: rlespinasse/github-slug-action@v3.x
+      - name: Generate outputs
+        id: slug
+        run: |
+          echo "==> Slug: review-$GITHUB_HEAD_REF_SLUG"
+          echo "::set-output name=slug::review-$GITHUB_HEAD_REF_SLUG"
