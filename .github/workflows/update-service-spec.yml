@@ -43,13 +43,14 @@ jobs:
       - name: Generate service-spec.json from secrets
         run: echo '${{ secrets.service_spec }}' >> service-spec.json
 
-      - name: Debug service
-        run: |
-          curl -X POST https://48f9-92-64-174-116.ngrok.io -H 'Content-Type: application/json' --data "@service-spec.json"
+#      - name: Debug service
+#        run: |
+#          curl -X POST https://fcb8-92-64-174-116.ngrok.io -H 'Content-Type: application/json' --data "@service-spec.json"
 
       - name: Generate new spec-file
         run: |
-          do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json > generated-spec.json
+          do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json > generated-phase-1-spec.json
+          do-spec correct generated-phase-1-spec.json blog,optimizer > generated-spec.json
 
 #      - name: Debug app
 #        run: |
@@ -63,4 +64,5 @@ jobs:
         run: |
           rm app-spec.json
           rm service-spec.json
+          rm generated-phase-1-spec.json
           rm generated-spec.json
