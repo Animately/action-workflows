@@ -82,7 +82,7 @@ jobs:
       - name: Get other services
         id: extract_services
         run: |
-          service_list=$(echo "console.log(require('./app-spec.json').services.filter(s => s.name !== '${{ inputs.service }}').map(s => s.name).join(', '))" | node -)
+          service_list=$(echo "console.log(require('./app-spec.json').services.filter(s => s.name !== '${{ inputs.service }}').map(s => s.name).join(','))" | node -)
           echo "::set-output name=services::$service_list"
           echo "Services to delete: $service_list"
 
