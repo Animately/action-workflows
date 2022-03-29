@@ -12,9 +12,14 @@ on:
       deploy_app_id:
         required: false
         type: string
+      snyk_test:
+        required: false
+        type: boolean
     secrets:
       do_token:
         required: true
+      snyk_token:
+        required: false
       envs:
         required: false
     outputs:
@@ -55,7 +60,33 @@ jobs:
       - name: Create secrets file
         run: echo "${{ secrets.envs }}" >> /tmp/secrets.txt
 
-      - name: Build and push
+      - name: Build image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          builder: ${{ steps.buildx.outputs.name }}
+          file: Dockerfile
+          tags: registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          secret-files: |
+            "envs=/tmp/secrets.txt"
+
+      - uses: snyk/actions/setup@master
+        if: ${{ inputs.snyk_test }}
+
+      - uses: actions/setup-go@v1
+        if: ${{ inputs.snyk_test }}
+        with:
+          go-version: '1.13'
+
+      - name: Snyk docker image
+        if: ${{ inputs.snyk_test }}
+        run: snyk container test --docker-image registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }} --file=Dockerfile --exclude-base-image-vulns
+        env:
+          SNYK_TOKEN: ${{ secrets.snyk_token }}
+
+      - name: Push image
         uses: docker/build-push-action@v2
         with:
           context: .
@@ -63,8 +94,8 @@ jobs:
           file: Dockerfile
           push: true
           tags: registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          cache-from: type=local,src=/tmp/.buildx-cache-new
+          cache-to: type=local,dest=/tmp/.buildx-cache-new-push,mode=max
           secret-files: |
             "envs=/tmp/secrets.txt"
 
@@ -92,5 +123,5 @@ jobs:
 
       - name: Move cache
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          rm -rf /tmp/.buildx-cache /tmp/.buildx-cache-new
+          mv /tmp/.buildx-cache-new-push /tmp/.buildx-cache
