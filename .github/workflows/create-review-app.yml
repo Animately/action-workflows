@@ -87,6 +87,7 @@ jobs:
           echo "Services to delete: $service_list"
 
       - name: Remove other services from spec
+        if: ${{ steps.extract_services.outputs.services != '' }}
         run: |
           echo "$(do-spec delete-services app-spec.json ${{ steps.extract_services.outputs.services }})" > app-spec.json
 
