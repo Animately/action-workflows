@@ -12,14 +12,11 @@ on:
       deploy_app_id:
         required: false
         type: string
-      snyk_test:
-        required: false
-        type: boolean
     secrets:
       do_token:
         required: true
       snyk_token:
-        required: false
+        required: true
       envs:
         required: false
     outputs:
@@ -34,7 +31,7 @@ jobs:
       deploy_id: ${{ steps.deployment.outputs.deploy_id }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
@@ -50,12 +47,13 @@ jobs:
 
       - name: Cache Docker layers
         id: cache-layers
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-single-buildx-${{ inputs.environment }}-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${{ inputs.environment }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-single-buildx-${{ inputs.environment }}
+            ${{ runner.os }}-buildx-${{ inputs.environment }}
+            ${{ runner.os }}-buildx
 
       - name: Create secrets file
         run: echo "${{ secrets.envs }}" >> /tmp/secrets.txt
@@ -66,25 +64,26 @@ jobs:
           context: .
           builder: ${{ steps.buildx.outputs.name }}
           file: Dockerfile
+          push: false
           tags: registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           secret-files: |
             "envs=/tmp/secrets.txt"
 
-      - uses: snyk/actions/setup@master
-        if: ${{ inputs.snyk_test }}
-
-      - uses: actions/setup-go@v1
-        if: ${{ inputs.snyk_test }}
-        with:
-          go-version: '1.13'
-
-      - name: Snyk docker image
-        if: ${{ inputs.snyk_test }}
-        run: snyk container test --docker-image registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }} --file=Dockerfile --exclude-base-image-vulns
+      - name: Run Snyk to check Docker image for vulnerabilities
+        continue-on-error: true
+        uses: snyk/actions/docker@master
         env:
           SNYK_TOKEN: ${{ secrets.snyk_token }}
+        with:
+          image: registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }}
+          args: --file=Dockerfile
+
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: snyk.sarif
 
       - name: Push image
         uses: docker/build-push-action@v2
