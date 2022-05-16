@@ -27,7 +27,7 @@ on:
 
 jobs:
   review:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       review_app_id: ${{ steps.deploy.outputs.review_app_id }}
       review_url: ${{ steps.review.outputs.review_url }}

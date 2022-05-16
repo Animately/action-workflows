@@ -18,7 +18,7 @@ on:
 
 jobs:
   destroy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Install doctl
         uses: digitalocean/action-doctl@v2

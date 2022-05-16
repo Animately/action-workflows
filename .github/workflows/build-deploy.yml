@@ -26,7 +26,7 @@ on:
 
 jobs:
   build-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       SNYK_TOKEN: ${{ secrets.snyk_token }}
       TAG: registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }}

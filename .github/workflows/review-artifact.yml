@@ -22,7 +22,7 @@ on:
 
 jobs:
   artifact:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       app_id: ${{ steps.artifacts.outputs.review_app_id }}
       app_url: ${{ steps.artifacts.outputs.review_url }}

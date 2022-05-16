@@ -9,7 +9,7 @@ on:
 
 jobs:
   generate-slug:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       slug: ${{ steps.slug.outputs.slug }}
     steps:
