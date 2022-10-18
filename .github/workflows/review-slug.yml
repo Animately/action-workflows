@@ -14,7 +14,9 @@ jobs:
       slug: ${{ steps.slug.outputs.slug }}
     steps:
       - name: Generate slug
-        uses: rlespinasse/github-slug-action@v3.x
+        uses: rlespinasse/github-slug-action@v4
+        with:
+          short-length: 8
       - name: Generate outputs
         id: slug
         run: |

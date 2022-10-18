@@ -63,14 +63,14 @@ jobs:
           SERVICE_NAME: ${{ inputs.service }}
         run: |
           appname=$(echo "$SERVICE_NAME-$REVIEW_NAME" | cut -c -28)
-          
+
           cat <<EOT>> app-replace.json
           { "name": "${appname}-rev" }
           EOT
 
       - name: Remove domain settings (use DO domain)
         run: |
-          echo "$(do-spec delete-top-level-props app-spec.json domains)" > app-spec.json 
+          echo "$(do-spec delete-top-level-props app-spec.json domains)" > app-spec.json
 
       - name: Merge app-replace.json into app-spec.json
         run: |
@@ -105,9 +105,9 @@ jobs:
         run: |
           echo "$(do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json)" > app-spec.json
 
-#      - name: Debug app spec
-#        run: |
-#          curl -X POST https://48f9-92-64-174-116.ngrok.io -H 'Content-Type: application/json' --data "@app-spec.json"
+      #      - name: Debug app spec
+      #        run: |
+      #          curl -X POST https://48f9-92-64-174-116.ngrok.io -H 'Content-Type: application/json' --data "@app-spec.json"
 
       - name: Deploy new review app to digitalocean
         id: deploy
@@ -130,6 +130,6 @@ jobs:
 
       - name: Clean up
         run: |
-          rm app-spec.json 
-          rm app-replace.json 
-          rm service-spec.json 
+          rm app-spec.json
+          rm app-replace.json
+          rm service-spec.json
