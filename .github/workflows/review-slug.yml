@@ -21,4 +21,4 @@ jobs:
         id: slug
         run: |
           echo "==> Slug: review-$GITHUB_HEAD_REF_SLUG"
-          echo "::set-output name=slug::review-$GITHUB_HEAD_REF_SLUG"
+          echo "slug=review-$GITHUB_HEAD_REF_SLUG" >> $GITHUB_OUTPUT

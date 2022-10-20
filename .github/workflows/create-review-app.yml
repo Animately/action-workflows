@@ -81,13 +81,13 @@ jobs:
         if: ${{ env.SERVICE_SPEC != '' }}
         env:
           SERVICE_SPEC: ${{ secrets.service_spec }}
-        run: echo "::set-output name=defined::true"
+        run: echo "defined=true" >> $GITHUB_OUTPUT
 
       - name: Get other services
         id: extract_services
         run: |
           service_list=$(echo "console.log(require('./app-spec.json').services.filter(s => s.name !== '${{ inputs.service }}').map(s => s.name).join(','))" | node -)
-          echo "::set-output name=services::$service_list"
+          echo "services=$service_list" >> $GITHUB_OUTPUT
           echo "Services to delete: $service_list"
 
       - name: Remove other services from spec
@@ -113,7 +113,7 @@ jobs:
         id: deploy
         run: |
           app_id=$(doctl apps create --spec app-spec.json --format ID --no-header --wait)
-          echo "::set-output name=review_app_id::$app_id"
+          echo "review_app_id=$app_id" >> $GITHUB_OUTPUT
 
       - name: Get service route
         uses: sergeysova/jq-action@v2
@@ -126,7 +126,7 @@ jobs:
         id: review
         run: |
           ingress=$(doctl apps get ${{ steps.deploy.outputs.review_app_id }} --format DefaultIngress --no-header)
-          echo "::set-output name=review_url::$ingress${{ steps.service_route.outputs.value }}"
+          echo "review_url=$ingress${{ steps.service_route.outputs.value }}" >> $GITHUB_OUTPUT
 
       - name: Clean up
         run: |

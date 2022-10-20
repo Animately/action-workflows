@@ -106,9 +106,9 @@ jobs:
         continue-on-error: true
         run: |
           if [ "${{ steps.cache-layers.outputs.cache-hit }}" == "true" ] | [ -z "${{ inputs.deploy_app_id }}" ]; then
-            echo "::set-output name=deploy::0";
+            echo "deploy=0" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=deploy::1";
+            echo "deploy=1" >> $GITHUB_OUTPUT
           fi
 
       - name: Deploy DO apps
@@ -118,7 +118,7 @@ jobs:
         run: |
           echo "Create deployment for app: ${{ inputs.deploy_app_id }}"
           deploy_id=$(doctl apps create-deployment ${{ inputs.deploy_app_id }} --format ID --no-header --wait)
-          echo "::set-output name=deploy_id::$deploy_id"
+          echo "deploy_id=$deploy_id" >> $GITHUB_OUTPUT
 
       - name: Move cache
         run: |

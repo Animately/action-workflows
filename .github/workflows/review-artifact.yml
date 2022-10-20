@@ -38,5 +38,5 @@ jobs:
           echo "==> AppID:  $(cat /tmp/review-artifact/app_id.txt)"
           echo "==> AppURL: $(cat /tmp/review-artifact/app_url.txt)"
           
-          echo "::set-output name=review_app_id::$(cat /tmp/review-artifact/app_id.txt)"
-          echo "::set-output name=review_url::$(cat /tmp/review-artifact/app_url.txt)"
+          echo "review_app_id=$(cat /tmp/review-artifact/app_id.txt)" >> $GITHUB_OUTPUT
+          echo "review_url=$(cat /tmp/review-artifact/app_url.txt)" >> $GITHUB_OUTPUT
