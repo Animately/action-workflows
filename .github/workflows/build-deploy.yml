@@ -82,7 +82,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.snyk_token }}
         with:
           image: ${{ env.TAG }}
-          args: --file=Dockerfile
+          args: --exclude-app-vulns --exclude-base-image-vulns --file=Dockerfile
           sarif: false
 
       - name: Push image
