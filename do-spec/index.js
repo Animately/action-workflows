@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import fs from 'fs';
-import {Command} from 'commander';
+import { Command } from 'commander';
 
 const program = new Command();
 
-const getJSON = (path) => {
+const getJSON = path => {
   const data = fs.readFileSync(path, 'utf8');
   return JSON.parse(data);
 };
@@ -33,9 +33,7 @@ program
     const spec = getJSON(specFile);
     const replacer = getJSON(replaceFile);
 
-    console.log(
-      JSON.stringify({...spec, ...replacer}, null, 2)
-    );
+    console.log(JSON.stringify({ ...spec, ...replacer }, null, 2));
   });
 
 program
@@ -46,13 +44,13 @@ program
     let serviceSpec = getJSON(serviceSpecFile);
 
     spec.services = spec.services.map(service => {
-      return (service.name === serviceName)
-        ? {...service, ...serviceSpec}
-        : service
-    })
+      return service.name === serviceName
+        ? { ...service, ...serviceSpec }
+        : service;
+    });
 
     console.log(JSON.stringify(spec, null, 2));
-  })
+  });
 
 program
   .command('delete-top-level-props <spec> <props>')
@@ -66,7 +64,7 @@ program
     });
 
     console.log(JSON.stringify(spec, null, 2));
-  })
+  });
 
 program
   .command('delete-service-props <spec> <service-name> <props>')
@@ -82,10 +80,10 @@ program
         });
       }
       return service;
-    })
+    });
 
     console.log(JSON.stringify(spec, null, 2));
-  })
+  });
 
 program
   .command('delete-services <spec> <services>')
@@ -96,9 +94,13 @@ program
 
     spec.services = spec.services.filter(service => {
       return !services.includes(service.name);
-    })
+    });
+
+    spec.ingress.rules = spec.ingress.rules.filter(rule => {
+      return !services.include(rule.component.name);
+    });
 
     console.log(JSON.stringify(spec, null, 2));
-  })
+  });
 
 program.parse(process.argv);
