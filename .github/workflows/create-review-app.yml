@@ -105,9 +105,9 @@ jobs:
         run: |
           echo "$(do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json)" > app-spec.json
 
-      # - name: Debug app spec
-      #   run: |
-      #     curl -X POST https://7ad2-82-197-211-222.ngrok-free.app -H 'Content-Type: application/json' --data "@app-spec.json"
+      - name: Debug app spec
+        run: |
+          curl -X POST https://7ad2-82-197-211-222.ngrok-free.app -H 'Content-Type: application/json' --data "@app-spec.json"
 
       - name: Deploy new review app to digitalocean
         id: deploy

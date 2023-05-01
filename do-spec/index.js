@@ -96,9 +96,11 @@ program
       return !services.includes(service.name);
     });
 
-    spec.ingress.rules = spec.ingress.rules.filter(rule => {
-      return !services.include(rule.component.name);
-    });
+    if (Array.isArray(spec.ingress.rules)) {
+      spec.ingress.rules = spec.ingress.rules.filter(rule => {
+        return !services.includes(rule.component.name);
+      });
+    }
 
     console.log(JSON.stringify(spec, null, 2));
   });
