@@ -81,13 +81,13 @@ jobs:
         if: ${{ env.SERVICE_SPEC != '' }}
         env:
           SERVICE_SPEC: ${{ secrets.service_spec }}
-        run: echo "defined=true" >> $GITHUB_OUTPUT
+        run: echo "defined=true" >> "$GITHUB_OUTPUT"
 
       - name: Get other services
         id: extract_services
         run: |
           service_list=$(echo "console.log(require('./app-spec.json').services.filter(s => s.name !== '${{ inputs.service }}').map(s => s.name).join(','))" | node -)
-          echo "services=$service_list" >> $GITHUB_OUTPUT
+          echo "services=$service_list" >> "$GITHUB_OUTPUT"
           echo "Services to delete: $service_list"
 
       - name: Remove other services from spec
@@ -105,28 +105,37 @@ jobs:
         run: |
           echo "$(do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json)" > app-spec.json
 
-      # - name: Debug app spec
-      #   run: |
-      #     curl -X POST https://7ad2-82-197-211-222.ngrok-free.app -H 'Content-Type: application/json' --data "@app-spec.json"
+      - name: Debug app spec
+        run: |
+          echo "::group::App Spec"
+          base64 -i app-spec.json
+          echo "::endgroup::"
 
       - name: Deploy new review app to digitalocean
         id: deploy
         run: |
           app_id=$(doctl apps create --spec app-spec.json --format ID --no-header --wait)
-          echo "review_app_id=$app_id" >> $GITHUB_OUTPUT
+          echo "review_app_id=$app_id" >> "$GITHUB_OUTPUT"
 
       - name: Get service route
         uses: sergeysova/jq-action@v2
         id: service_route
         continue-on-error: true
         with:
-          cmd: cat app-spec.json | jq -r ".services[] | select(.name | contains(\"${{ inputs.service }}\")) | .routes[0].path" 2>/dev/null
+          cmd: |
+            service_route=$(cat app-spec.json | jq -r ".ingress.rules[] | select(.component.name | contains(\"${{ inputs.service }}\")) | .match.path.prefix")
+            echo "==> service route=$service_route"
+            echo "path=$service_route" >> "$GITHUB_OUTPUT"
 
       - name: Get review url
         id: review
         run: |
           ingress=$(doctl apps get ${{ steps.deploy.outputs.review_app_id }} --format DefaultIngress --no-header)
-          echo "review_url=$ingress${{ steps.service_route.outputs.value }}" >> $GITHUB_OUTPUT
+          review_url="${ingress}${{ steps.service_route.outputs.path }}"
+          echo "review_url=$review_url" >> "$GITHUB_OUTPUT"
+          echo "==> ingress=$ingress"
+          echo "==> service-route=${{ steps.service_route.outputs.path }}"
+          echo "==> created review url: $review_url"
 
       - name: Clean up
         run: |
