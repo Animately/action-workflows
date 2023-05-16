@@ -56,7 +56,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ inputs.environment }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-${{ inputs.environment }}
-            ${{ runner.os }}-buildx
+#            ${{ runner.os }}-buildx
 
       - name: Create secrets file
         run: echo "${{ secrets.envs }}" >> /tmp/secrets.txt
