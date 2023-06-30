@@ -106,10 +106,7 @@ jobs:
           echo "$(do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json)" > app-spec.json
 
       - name: Debug app spec
-        run: |
-          echo "::group::App Spec"
-          base64 -i app-spec.json
-          echo "::endgroup::"
+        run: base64 -i app-spec.json | sed 's/./& /g'
 
       - name: Deploy new review app to digitalocean
         id: deploy
