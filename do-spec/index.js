@@ -17,9 +17,9 @@ program
     const services = servicesList.split(',');
     let spec = getJSON(specFile);
 
-    spec.services.forEach(service => {
-      if (services.includes(service.name)) {
-        service.routes[0].preserve_path_prefix = true;
+    spec.ingress.rules.forEach(rule => {
+      if (services.includes(rule.component.name)) {
+        rule.component.preserve_path_prefix = true;
       }
     });
 

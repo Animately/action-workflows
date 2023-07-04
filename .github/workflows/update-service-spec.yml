@@ -54,7 +54,7 @@ jobs:
       - name: Generate new spec-file
         run: |
           do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json > generated-phase-1-spec.json
-          do-spec correct generated-phase-1-spec.json blog,optimizer > generated-spec.json
+          do-spec correct generated-phase-1-spec.json redirect-webflow,optimizer > generated-spec.json
 
 #      - name: Debug app
 #        run: |
