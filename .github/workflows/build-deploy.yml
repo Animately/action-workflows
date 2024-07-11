@@ -19,6 +19,9 @@ on:
         required: false
         type: boolean
         default: false
+      checkout_submodules_token:
+        required: false
+        type: string
     secrets:
       do_token:
         required: true
@@ -45,14 +48,14 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.GH_CROSS_REPO_TOKEN }}
+          token: ${{ secrets.checkout_submodules_token }}
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha != null }}
 
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.GH_CROSS_REPO_TOKEN }}
+          token: ${{ secrets.checkout_submodules_token }}
         if: ${{ github.event_name != 'pull_request' }}
 
       - name: Install doctl
