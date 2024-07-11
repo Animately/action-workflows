@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: animately/action-download-pr-artifact@main
         with:
-          worfklow_file_name: ${{ inputs.workflow_file_name }}
+          workflow_file_name: ${{ inputs.workflow_file_name }}
           artifact_name: ${{ inputs.artifact_name }}
           path: /tmp/review-artifact
       - name: Output artifacts

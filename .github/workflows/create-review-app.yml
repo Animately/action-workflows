@@ -37,9 +37,9 @@ jobs:
       review_url: ${{ steps.review.outputs.review_url }}
     steps:
       - name: Checkout administration
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          repository: Animately/administration
+          repository: Animately/action-workflows
           token: ${{ github.token }}
 
       - name: Install do-spec
