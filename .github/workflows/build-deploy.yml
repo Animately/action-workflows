@@ -19,15 +19,14 @@ on:
         required: false
         type: boolean
         default: false
-      checkout_submodules_token:
-        required: false
-        type: string
     secrets:
       do_token:
         required: true
       snyk_token:
         required: true
       envs:
+        required: false
+      checkout_submodules_token:
         required: false
     outputs:
       deploy_id:
