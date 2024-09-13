@@ -20,6 +20,8 @@ on:
         required: true
       snyk_token:
         required: true
+      cross_repo_token:
+        required: true
       envs:
         required: false
     outputs:
@@ -40,11 +42,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          submodules: true
+          token: ${{ secrets.cross_repo_token }}
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha != null }}
 
       - name: Checkout code
         uses: actions/checkout@v4
         if: ${{ github.event_name != 'pull_request' }}
+        with:
+          submodules: true
+          token: ${{ secrets.cross_repo_token }}
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
