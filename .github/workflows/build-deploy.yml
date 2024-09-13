@@ -16,6 +16,10 @@ on:
         required: false
         type: string
     secrets:
+      do_token:
+        required: true
+      snyk_token:
+        required: true
       envs:
         required: false
     outputs:
@@ -27,7 +31,7 @@ jobs:
   build-deploy:
     runs-on: self-hosted
     env:
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.snyk_token }}
       TAG: registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }}
     outputs:
       deploy_id: ${{ steps.deployment.outputs.deploy_id }}
@@ -36,21 +40,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          submodules: true
-          token: ${{ secrets.GH_CROSS_REPO_TOKEN }}
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha != null }}
 
       - name: Checkout code
         uses: actions/checkout@v4
         if: ${{ github.event_name != 'pull_request' }}
-        with:
-          submodules: true
-          token: ${{ secrets.GH_CROSS_REPO_TOKEN }}
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          token: ${{ secrets.do_token }}
 
       - name: Login to registry
         run: doctl registry login
@@ -90,7 +89,7 @@ jobs:
         if: "${{ env.SNYK_TOKEN != '' }}"
         uses: snyk/actions/docker@master
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.snyk_token }}
         with:
           image: ${{ env.TAG }}
           args: --exclude-app-vulns --exclude-base-image-vulns --file=Dockerfile
