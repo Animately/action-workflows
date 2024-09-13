@@ -14,8 +14,6 @@ on:
         required: true
         type: string
     secrets:
-      do_token:
-        required: true
       service_spec:
         required: true
 
@@ -35,7 +33,7 @@ jobs:
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
-          token: ${{ secrets.do_token }}
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
       - name: Login to registry
         run: doctl registry login
