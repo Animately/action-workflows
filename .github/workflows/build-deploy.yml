@@ -18,8 +18,6 @@ on:
     secrets:
       do_token:
         required: true
-      snyk_token:
-        required: true
       cross_repo_token:
         required: true
       envs:
@@ -33,7 +31,6 @@ jobs:
   build-deploy:
     runs-on: self-hosted
     env:
-      SNYK_TOKEN: ${{ secrets.snyk_token }}
       TAG: registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }}
     outputs:
       deploy_id: ${{ steps.deployment.outputs.deploy_id }}
@@ -91,16 +88,6 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           secret-files: |
             "envs=/tmp/secrets.txt"
-
-      - name: Run Snyk to check Docker image for vulnerabilities
-        if: "${{ env.SNYK_TOKEN != '' }}"
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.snyk_token }}
-        with:
-          image: ${{ env.TAG }}
-          args: --exclude-app-vulns --exclude-base-image-vulns --file=Dockerfile
-          sarif: false
 
       - name: Push image
         uses: docker/build-push-action@v5
