@@ -36,7 +36,7 @@ jobs:
       deploy_id: ${{ steps.deployment.outputs.deploy_id }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           submodules: true
@@ -44,7 +44,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha != null }}
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         if: ${{ github.event_name != 'pull_request' }}
         with:
           submodules: true
