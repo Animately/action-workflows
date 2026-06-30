@@ -76,7 +76,7 @@ jobs:
         run: echo "${{ secrets.envs }}" >> /tmp/secrets.txt
 
       - name: Build image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           builder: ${{ steps.buildx.outputs.name }}
@@ -90,7 +90,7 @@ jobs:
             "envs=/tmp/secrets.txt"
 
       - name: Push image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           builder: ${{ steps.buildx.outputs.name }}

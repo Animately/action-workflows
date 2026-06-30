@@ -37,7 +37,7 @@ jobs:
       review_url: ${{ steps.review.outputs.review_url }}
     steps:
       - name: Checkout administration
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: Animately/action-workflows
           token: ${{ github.token }}
