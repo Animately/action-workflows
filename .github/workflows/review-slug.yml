@@ -9,12 +9,12 @@ on:
 
 jobs:
   generate-slug:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       slug: ${{ steps.slug.outputs.slug }}
     steps:
       - name: Generate slug
-        uses: rlespinasse/github-slug-action@v4
+        uses: rlespinasse/github-slug-action@v5
         with:
           short-length: 8
       - name: Generate outputs

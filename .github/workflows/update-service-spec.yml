@@ -2,7 +2,7 @@ name: Update service spec
 
 defaults:
   run:
-    shell: bash -ieo pipefail {0}
+    shell: bash -eo pipefail {0}
 
 on:
   workflow_call:
@@ -21,13 +21,20 @@ on:
 
 jobs:
   sync-spec:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout administration
         uses: actions/checkout@v7
         with:
           repository: Animately/administration
           token: ${{ github.token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: do-spec/package-lock.json
 
       - name: Install do-spec
         run: cd do-spec; npm install && npm install -g .
@@ -37,15 +44,14 @@ jobs:
         with:
           token: ${{ secrets.do_token }}
 
-      - name: Login to registry
-        run: doctl registry login
-
       - name: Generate app-spec.json from doctl
         run: |
           doctl apps spec get ${{ inputs.deploy_app_id }} --format json > app-spec.json
 
       - name: Generate service-spec.json from secrets
-        run: echo '${{ secrets.service_spec }}' >> service-spec.json
+        env:
+          SERVICE_SPEC: ${{ secrets.service_spec }}
+        run: printf '%s\n' "$SERVICE_SPEC" > service-spec.json
 
 #      - name: Debug service
 #        run: |
@@ -63,10 +69,3 @@ jobs:
       - name: Apply new spec to digitalocean and redeploy
         run: |
           doctl apps update ${{ inputs.deploy_app_id }} --wait --spec generated-spec.json
-
-      - name: Clean up
-        run: |
-          rm app-spec.json
-          rm service-spec.json
-          rm generated-phase-1-spec.json
-          rm generated-spec.json

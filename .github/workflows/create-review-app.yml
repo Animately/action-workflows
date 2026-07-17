@@ -2,7 +2,7 @@ name: Create review app
 
 defaults:
   run:
-    shell: bash -ieo pipefail {0}
+    shell: bash -eo pipefail {0}
 
 on:
   workflow_call:
@@ -31,7 +31,7 @@ on:
 
 jobs:
   review:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       review_app_id: ${{ steps.deploy.outputs.review_app_id }}
       review_url: ${{ steps.review.outputs.review_url }}
@@ -42,6 +42,13 @@ jobs:
           repository: Animately/action-workflows
           token: ${{ github.token }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: do-spec/package-lock.json
+
       - name: Install do-spec
         run: cd do-spec; npm install && npm install -g .
 
@@ -49,9 +56,6 @@ jobs:
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.do_token }}
-
-      - name: Login to registry
-        run: doctl registry login
 
       - name: Generate app-spec.json from doctl
         run: |
@@ -97,16 +101,14 @@ jobs:
 
       - name: Generate service spec
         if: ${{ steps.service_spec_check.outputs.defined == 'true' }}
-        shell: bash
-        run: echo -e '${{ secrets.service_spec }}' > service-spec.json
+        env:
+          SERVICE_SPEC: ${{ secrets.service_spec }}
+        run: printf '%b\n' "$SERVICE_SPEC" > service-spec.json
 
       - name: Merge service spec back into app-spec.json
         if: ${{ steps.service_spec_check.outputs.defined == 'true' }}
         run: |
           echo "$(do-spec merge-service app-spec.json ${{ inputs.service }} service-spec.json)" > app-spec.json
-
-      - name: Debug app spec
-        run: base64 -i app-spec.json | sed 's/./& /g'
 
       - name: Deploy new review app to digitalocean
         id: deploy
@@ -115,14 +117,12 @@ jobs:
           echo "review_app_id=$app_id" >> "$GITHUB_OUTPUT"
 
       - name: Get service route
-        uses: sergeysova/jq-action@v2
         id: service_route
         continue-on-error: true
-        with:
-          cmd: |
-            service_route=$(cat app-spec.json | jq -r ".ingress.rules[] | select(.component.name | contains(\"${{ inputs.service }}\")) | .match.path.prefix")
-            echo "==> service route=$service_route"
-            echo "path=$service_route" >> "$GITHUB_OUTPUT"
+        run: |
+          service_route=$(jq -r ".ingress.rules[] | select(.component.name | contains(\"${{ inputs.service }}\")) | .match.path.prefix" app-spec.json)
+          echo "==> service route=$service_route"
+          echo "path=$service_route" >> "$GITHUB_OUTPUT"
 
       - name: Get review url
         id: review
@@ -133,9 +133,3 @@ jobs:
           echo "==> ingress=$ingress"
           echo "==> service-route=${{ steps.service_route.outputs.path }}"
           echo "==> created review url: $review_url"
-
-      - name: Clean up
-        run: |
-          rm app-spec.json
-          rm app-replace.json
-          rm service-spec.json

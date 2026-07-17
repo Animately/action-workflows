@@ -29,7 +29,7 @@ on:
 
 jobs:
   build-deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       TAG: registry.digitalocean.com/animately/${{ inputs.name }}:${{ inputs.environment }}
     outputs:
@@ -59,72 +59,30 @@ jobs:
         run: doctl registry login
 
       - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Cache Docker layers
-        id: cache-layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ inputs.environment }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-${{ inputs.environment }}
-            ${{ runner.os }}-buildx
+        uses: docker/setup-buildx-action@v4
 
       - name: Create secrets file
-        run: echo "${{ secrets.envs }}" >> /tmp/secrets.txt
+        env:
+          ENVS: ${{ secrets.envs }}
+        run: printf '%s\n' "$ENVS" > /tmp/secrets.txt
 
-      - name: Build image
-        uses: docker/build-push-action@v6
+      - name: Build and push image
+        uses: docker/build-push-action@v7
         with:
           context: .
-          builder: ${{ steps.buildx.outputs.name }}
-          file: Dockerfile
-          push: false
-          load: true
-          tags: ${{ env.TAG }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-          secret-files: |
-            "envs=/tmp/secrets.txt"
-
-      - name: Push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          builder: ${{ steps.buildx.outputs.name }}
           file: Dockerfile
           push: true
           tags: ${{ env.TAG }}
-          cache-from: type=local,src=/tmp/.buildx-cache-new
-          cache-to: type=local,dest=/tmp/.buildx-cache-new-push,mode=max
+          cache-from: type=gha,scope=${{ inputs.environment }}
+          cache-to: type=gha,scope=${{ inputs.environment }},mode=max
           secret-files: |
             "envs=/tmp/secrets.txt"
 
-      - name: Clean up secrets file
-        run: rm -f /tmp/secrets.txt
-
-      - name: Determine deployment
-        id: determine-deployment
-        continue-on-error: true
-        run: |
-          if [ "${{ steps.cache-layers.outputs.cache-hit }}" == "true" ] | [ -z "${{ inputs.deploy_app_id }}" ]; then
-            echo "deploy=0" >> $GITHUB_OUTPUT
-          else
-            echo "deploy=1" >> $GITHUB_OUTPUT
-          fi
-
       - name: Deploy DO apps
-        if: contains(steps.determine-deployment.outputs.deploy, '1')
+        if: ${{ inputs.deploy_app_id != '' }}
         id: deployment
         timeout-minutes: 30
         run: |
           echo "Create deployment for app: ${{ inputs.deploy_app_id }}"
           deploy_id=$(doctl apps create-deployment ${{ inputs.deploy_app_id }} --format ID --no-header --wait)
           echo "deploy_id=$deploy_id" >> $GITHUB_OUTPUT
-
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache /tmp/.buildx-cache-new
-          mv /tmp/.buildx-cache-new-push /tmp/.buildx-cache
